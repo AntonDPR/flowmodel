@@ -1,21 +1,12 @@
-package ru.alexsumin.model;
+package ru.alexsum.model;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by alex on 15.03.17. Edited by Anton on 18.03.17.
+ * Created by alex on 15.03.17. Edited by Anton on 18.03.17 and 26.03.17.
  */
 public class Data {
-    /*
-    На интерфейсе:
-    1) не делать сокращений;
-    2) указать единицы измерения всех величин;
-    3) обеспечить надежность ПО: контроль того, что вводимый символ - цифра (не буква, не символ), полученное число - не ноль;
-    4) для графиков: подписать оси, не делать легенды; ожидаемые зависимости: с увеличением длины канала температура должна расти, вязкость - падать;
-    5) вывести время расчётов.
-     */
-
 
     // геометрические параметры
     private double width; // ширина канала
@@ -47,7 +38,7 @@ public class Data {
     private double deformationSpeed; // скорость деформации сдвига
     private double viscosityFlux; // удельный тепловой поток, генерируемый в материале за счет работы сил вязкого трения
     private double fluxFromCover; // удельный тепловой поток от нагретой крышки канала к материалу
-    private double numberOfIterations; // количество шагов в цикле для расчетов температуры и вязкости материала
+    private int numberOfIterations; // количество шагов в цикле для расчетов температуры и вязкости материала
     private double transcalencyFactor; // коэффициент теплопроводности материала
     private double currentTemperature; // текущая температура материала
     private double consistenceFactor; // коэффициент консистенции материала
@@ -72,82 +63,84 @@ public class Data {
         this.emissionFactor = input[12];
     }
 
-
-    public void calcGeomFactor(double depth, double width) {
-        this.geomFactor = 0.125 * Math.pow((depth / width), 2) - 0.625 * (depth / width) + 1;
+    public static double roundToTwoPlaces(double d) {
+        return ((long) (d < 0 ? d * 100 - 0.5 : d * 100 + 0.5)) / 100.0;
     }
 
-    public void calcVolumeRate(double width, double depth, double coverSpeed) {
-        this.volumeRate = ((width * depth * coverSpeed) / 2) * geomFactor;
+    public void calcGeomFactor() {
+        geomFactor = 0.125 * Math.pow((depth / width), 2) - 0.625 * (depth / width) + 1;
     }
 
-    public void calcDeformationSpeed(double coverSpeed, double depth) {
-        this.deformationSpeed = coverSpeed / depth;
+    public void calcVolumeRate() {
+        volumeRate = ((width * depth * coverSpeed) / 2) * geomFactor;
     }
 
-    public void calcViscosityFlux(double width, double depth, double consFactorWithReduction, double flowIndex) {
-        this.viscosityFlux = width * depth * consFactorWithReduction * Math.pow(deformationSpeed, flowIndex + 1);
+    public void calcDeformationSpeed() {
+        deformationSpeed = coverSpeed / depth;
     }
 
-    public void calcFluxFromCover(double width, double emissionFactor, double viscosityFactor, double coverTemperature,
-                                  double reductionTemperature) {
-        this.fluxFromCover = width * emissionFactor * ((1 / viscosityFactor) - coverTemperature + reductionTemperature);
+    public void calcViscosityFlux() {
+        viscosityFlux = width * depth * consFactorWithReduction * Math.pow(deformationSpeed, flowIndex + 1);
     }
 
-    public void calcNumberOfIterations(double length, double lengthStep) {
-        this.numberOfIterations = Math.floor(length / lengthStep);
+    public void calcFluxFromCover() {
+        fluxFromCover = width * emissionFactor * ((1 / viscosityFactor) - coverTemperature + reductionTemperature);
     }
 
-    public void calcTranscalencyFactor(double viscosityFactor, double width, double emissionFactor, double density,
-                                       double capacity, double meltingTemperature, double reductionTemperature,
-                                       double currentLength) {
-        this.transcalencyFactor = ((viscosityFactor * viscosityFlux + width * emissionFactor) / (viscosityFactor * fluxFromCover)) *
-                                  (1 - Math.exp(- ((viscosityFactor * fluxFromCover) / (density * capacity * volumeRate)) * currentLength)) +
-                                  Math.exp(viscosityFactor * (meltingTemperature - reductionTemperature - (fluxFromCover / (density * capacity * volumeRate)) * currentLength));
+    public void calcNumberOfIterations() {
+        //numberOfIterations = Math.floor(length / lengthStep);
+        numberOfIterations = (int) (length / lengthStep);
     }
 
-    public void calcCurrentTemperature(double reductionTemperature, double viscosityFactor) {
-        this.currentTemperature = reductionTemperature + (1 / viscosityFactor) * Math.log(transcalencyFactor);
+    public void calcTranscalencyFactor(double currentLength) {
+        transcalencyFactor = ((viscosityFactor * viscosityFlux + width * emissionFactor) / (viscosityFactor * fluxFromCover)) *
+                (1 - Math.exp(-((viscosityFactor * fluxFromCover) / (density * capacity * volumeRate)) * currentLength)) +
+                Math.exp(viscosityFactor * (meltingTemperature - reductionTemperature - (fluxFromCover / (density * capacity * volumeRate)) * currentLength));
     }
 
-    public void calcConsistenceFactor(double consFactorWithReduction, double viscosityFactor, double reductionTemperature) {
-        this.consistenceFactor = consFactorWithReduction * Math.exp(- viscosityFactor * (currentTemperature - reductionTemperature));
+    public void calcCurrentTemperature() {
+        currentTemperature = reductionTemperature + (1 / viscosityFactor) * Math.log(transcalencyFactor);
     }
 
-    public void calcCurrentViscosity(double flowIndex) {
-        this.currentViscosity = consistenceFactor * Math.pow(deformationSpeed, flowIndex - 1);
+    public void calcConsistenceFactor() {
+        consistenceFactor = consFactorWithReduction * Math.exp(-viscosityFactor * (currentTemperature - reductionTemperature));
     }
 
-    public void calcCanalPerformance(double density) {
-        this.canalPerformance = 3600 * density * volumeRate;
+    public void calcCurrentViscosity() {
+        currentViscosity = consistenceFactor * Math.pow(deformationSpeed, flowIndex - 1);
+    }
+
+    public void calcCanalPerformance() {
+        canalPerformance = 3600 * density * volumeRate;
     }
 
     public double getCurrentTemperature() {
-        return this.currentTemperature;
+        return Math.rint(this.currentTemperature * 10) / 10;
     }
 
     public double getCurrentViscosity() {
-        return this.currentViscosity;
+        return Math.rint(this.currentViscosity);
     }
 
-    public double getCanalPerformance() { return  this.canalPerformance; }
+    public double getCanalPerformance() {
+        return Math.rint(this.canalPerformance);
+    }
 
     public void calcIntermediate() {
-        calcGeomFactor(depth, width);
-        calcVolumeRate(width, depth, coverSpeed);
-        calcDeformationSpeed(coverSpeed, depth);
-        calcViscosityFlux(width, depth, consFactorWithReduction, flowIndex);
-        calcFluxFromCover(width, emissionFactor, viscosityFactor, coverTemperature, reductionTemperature);
+        calcGeomFactor();
+        calcVolumeRate();
+        calcDeformationSpeed();
+        calcViscosityFlux();
+        calcFluxFromCover();
+        calcNumberOfIterations();
     }
 
     public void calcOutput(double currentLength) {
-        calcNumberOfIterations(length, lengthStep);
-        calcTranscalencyFactor(viscosityFactor, width, emissionFactor, density, capacity, meltingTemperature,
-                               reductionTemperature, currentLength);
-        calcCurrentTemperature(reductionTemperature, viscosityFactor);
-        calcConsistenceFactor(consFactorWithReduction, viscosityFactor, reductionTemperature);
-        calcCurrentViscosity(flowIndex);
-        calcCanalPerformance(density);
+        calcTranscalencyFactor(currentLength);
+        calcCurrentTemperature();
+        calcConsistenceFactor();
+        calcCurrentViscosity();
+        calcCanalPerformance();
     }
 
     public ArrayList getValues() {
@@ -159,6 +152,13 @@ public class Data {
             results.add(result);
             this.currentLength += lengthStep;
         }
+        {
+            calcOutput(length);
+            Result lastResult = new Result(length, getCurrentTemperature(), getCurrentViscosity());
+            results.add(lastResult);
+        }
+
+
         results.forEach(value -> System.out.println(value));
         return (ArrayList) results;
     }
