@@ -1,7 +1,12 @@
-package ru.alexsumin.model;
+package ru.alexsum.model;
+
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 
 /**
- * Created by alex on 15.03.17. Edited by Anton on 18.03.17.
+ * Created by alex on 15.03.17. Edited by Anton on 26.03.17.
  */
 public class Result {
     private double step;
@@ -9,9 +14,9 @@ public class Result {
     private double viscosity;
 
     public Result(double step, double temperature, double viscosity) {
-        this.step = step;
-        this.temperature = temperature;
-        this.viscosity = viscosity;
+        this.step = Math.rint(step * 10) / 10;
+        this.temperature = Math.rint(temperature * 10) / 10;
+        this.viscosity = Math.rint(viscosity);
     }
 
     public double getStep() {
@@ -34,16 +39,40 @@ public class Result {
         return viscosity;
     }
 
-    public void setViscosity(double viscosity) {
+    public void setViscosity(int viscosity) {
         this.viscosity = viscosity;
+    }
+
+    public DoubleProperty stepProperty(){
+        DoubleProperty pr = new SimpleDoubleProperty(step);
+        return pr;
+    }
+
+    public DoubleProperty temperatureProperty(){
+        DoubleProperty pr = new SimpleDoubleProperty(temperature);
+        return pr;
+    }
+
+    public IntegerProperty viscosityProperty() {
+        IntegerProperty pr = new SimpleIntegerProperty((int) viscosity);
+        return pr;
+    }
+
+    public double get(int index){
+        switch(index){
+            case 0: return step;
+            case 1: return temperature;
+            default: return viscosity;
+        }
     }
 
     @Override
     public String toString() {
-        return "Result {" +
-                "currLength = " + Math.rint(step * 10) / 10 +
-                ", temperature = " + Math.rint(temperature * 10) / 10 +
-                ", viscosity = " + Math.round(viscosity) +
+
+        return "Result{" +
+                "currentLength=" + step +
+                ", temperature=" + temperature +
+                ", viscosity=" + (int) viscosity +
                 '}';
     }
 }
